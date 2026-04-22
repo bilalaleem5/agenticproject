@@ -9,10 +9,42 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import requests, json, time
-from config import GEMINI_KEYS, GROK_KEYS, OPENROUTER_KEY, PRIMARY_AI
+from config import GEMINI_KEYS, GROK_KEYS, OPENROUTER_KEY, PRIMARY_AI, USE_MOCK_AI
 
 _gemini_idx = 0
 _grok_idx = 0
+
+
+def _call_mock(prompt: str, system: str = "", temperature: float = 0.7) -> str:
+    """Mock AI for verification without API keys."""
+    p_lower = prompt.lower()
+    if "decompose" in p_lower:
+        return json.dumps({
+            "product_task": "Generate a detailed product spec for a sales automation tool.",
+            "engineer_task": "Create a high-converting HTML landing page.",
+            "marketing_task": "Draft a cold email and Slack announcement."
+        })
+    if "verdict" in p_lower:
+        return json.dumps({
+            "verdict": "pass",
+            "reason": "The output meets all criteria.",
+            "revision_instruction": None,
+            "ethics_score": 9,
+            "ethics_justification": "Professional and transparent tone used."
+        })
+    if "product" in p_lower:
+        return json.dumps({
+            "value_proposition": "Automate your sales with AI.",
+            "features": ["Lead Gen", "Cold Email", "Analytics"],
+            "personas": ["Sales Manager", "Founder"]
+        })
+    if "marketing" in p_lower:
+        return json.dumps({
+            "tagline": "AI Sales OS - Your virtual SDR",
+            "email_body": "Hi, I noticed your business could benefit from AI automation..."
+        })
+    
+    return "Mock AI Response for: " + prompt[:50]
 
 
 def _call_gemini(prompt: str, system: str = "", temperature: float = 0.7) -> str:
@@ -85,9 +117,9 @@ def _call_openrouter(prompt: str, system: str = "", temperature: float = 0.7) ->
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
-    # Free model on OpenRouter
+    # Using a reliable Llama model on OpenRouter
     body = {
-        "model": "google/gemini-2.0-flash-exp:free",
+        "model": "meta-llama/llama-3.3-70b-instruct",
         "messages": messages,
         "temperature": temperature,
         "max_tokens": 2048,
@@ -106,6 +138,9 @@ def ai_call(prompt: str, system: str = "", temperature: float = 0.7, prefer: str
     Smart AI router — tries primary first, then falls back.
     prefer: 'gemini' | 'grok' | 'openrouter' (overrides config PRIMARY_AI)
     """
+    if USE_MOCK_AI:
+        return _call_mock(prompt, system, temperature)
+
     order = prefer or PRIMARY_AI
     if order == "gemini":
         chain = [_call_gemini, _call_grok, _call_openrouter]

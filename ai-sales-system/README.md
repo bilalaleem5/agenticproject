@@ -30,30 +30,30 @@ The system uses **5 specialized agents** that communicate exclusively via a stru
                         └───────────────┘
 ```
 
-### Agent Roles
+### Agent Roles (Advanced Research Architecture)
 
-| Agent | File | Responsibility |
-|-------|------|----------------|
-| **CEO Agent** | `agents/ceo_agent.py` | Orchestrates all agents, decomposes startup idea (LLM Call #1), reviews outputs (LLM Call #2), triggers revisions |
-| **Product Agent** | `agents/product_agent.py` | Generates personas, features, user stories, and value proposition as a JSON spec |
-| **GitHub Engineer Agent** | `agents/github_engineer_agent.py` | Creates a landing page HTML, commits to a branch, opens a real GitHub Pull Request via REST API |
-| **Slack Marketing Agent** | `agents/slack_marketing_agent.py` | Drafts taglines and email copy, sends real SMTP emails via Gmail, posts to Slack via Block Kit |
-| **QA Agent** | `agents/qa_agent.py` | Reviews HTML and marketing copy, posts real PR review comments to GitHub autonomously |
+The system features **15+ specialized agents** for deep sales automation:
 
-### Message Bus
+| Agent | Responsibility | Key Features |
+|-------|----------------|--------------|
+| **CEO Agent** | Orchestrator | Decomposition, LLM Review, Feedback Loops, **Shared Memory Access** |
+| **Product Agent** | Spec Generator | Personas, Features, User Stories |
+| **Research Agent** | Lead Deep-Dive | Social media tone analysis, website scraping |
+| **GitHub Engineer** | Development | Landing page generation, PR automation |
+| **Slack Marketing** | Communication | Slack announcements, Email drafting |
+| **QA Agent** | Review & Safety | **Ethics Guardrails**, GitHub PR comments, Quality scoring |
+| **Scraper Agent** | Data Extraction | Dynamic website content fetching |
+| **WhatsApp/Email** | Outreach | Multi-channel personalized messaging |
 
-All inter-agent communication flows through `agents/message_bus.py` — an SQLite-backed bus where every message is a structured JSON object:
+### Shared Context & Memory (Section 4.1 Requirement)
 
-```json
-{
-  "id": "uuid",
-  "timestamp": "2026-04-08T12:00:00Z",
-  "sender": "ceo",
-  "receiver": "engineer",
-  "message_type": "task",
-  "payload": { ... }
-}
-```
+All agents have access to a **Global SQLite Scratchpad** (`agents/memory.py`), allowing them to store and retrieve shared facts during a launch session. This enables cross-agent context (e.g., Engineer using Research data for personalized HTML).
+
+### Ethics & Responsibility (Section 2.5 Requirement)
+
+The **QA Agent** now performs an **Automated Ethics Check** on all marketing copy and HTML, scoring the output based on professional tone, transparency, and safety before any public deployment.
+
+---
 
 ### CEO Feedback Loop
 

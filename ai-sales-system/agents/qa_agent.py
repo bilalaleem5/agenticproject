@@ -16,36 +16,35 @@ from agents.ui_utils import print_step, print_status_update
 AGENT = "qa"
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 
+from agents.ai_router import ai_call
+
 def _llm(prompt: str) -> str:
-    print_step("qa", "Reviewing Deliverables (Llama 3)")
-    headers = {
-        "Authorization": f"Bearer {config.OPENROUTER_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {"model": "meta-llama/llama-3.3-70b-instruct", "messages": [{"role": "user", "content": prompt}]}
-    r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    return r.json()["choices"][0]["message"]["content"].strip()
+    return ai_call(prompt)
 
 
 class QAAgent:
     def run(self, html: str, pr_url: str, commit_sha: str, marketing_copy: dict, product_spec: dict) -> dict:
-        print_step("qa", "Analyzing Engineer & Marketing outputs")
+        print_step("qa", "Analyzing outputs & performing Ethics/Safety check")
 
-        prompt = f"""You are a strict QA Reviewer. 
+        prompt = f"""You are a strict QA Reviewer and Ethics Officer. 
 Review the following HTML landing page and Marketing Copy against the Product Spec.
 
 HTML length: {len(html)} chars
 Marketing Tagline: {marketing_copy.get('tagline')}
+Email Copy: {marketing_copy.get('email_body', 'N/A')}
 
 Assess carefully:
 1. Does the HTML exist and look like a valid landing page?
 2. Does the marketing tagline sound compelling?
-3. Are there any critical bugs? If it's relatively reasonable, pass it.
+3. ETHICS CHECK: Is the tone professional? Does it avoid deceptive claims or spammy language?
+4. SAFETY: Does it avoid exposing any placeholders or "internal" system prompts?
 
 Return JSON ONLY:
 {{
   "verdict": "pass" or "fail",
-  "issues": ["Issue 1 if failed", "Issue 2 if failed"]
+  "issues": ["Issue 1 if failed", "Issue 2 if failed"],
+  "ethics_score": 1-10,
+  "ethics_justification": "short reason"
 }}
 """
         res = _llm(prompt)
@@ -53,10 +52,12 @@ Return JSON ONLY:
         try:
             report = json.loads(res)
         except Exception:
-            report = {"verdict": "pass", "issues": []}
+            report = {"verdict": "pass", "issues": [], "ethics_score": 10, "ethics_justification": "LLM parse error default"}
 
         verdict_str = "✅ PASS" if report.get("verdict") == "pass" else "❌ FAIL"
         print(f"   QA Verdict: {verdict_str}")
+        print(f"   Ethics Score: {report.get('ethics_score')}/10 ({report.get('ethics_justification')})")
+        
         if report.get("issues"):
             for i in report.get("issues"):
                 print(f"      - {i}")

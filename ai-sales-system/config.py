@@ -24,6 +24,7 @@ GROK_KEYS = [
 OPENROUTER_KEY = os.getenv("OPENROUTER_KEY", "your_openrouter_key_here")
 
 PRIMARY_AI = "openrouter"   # "gemini" | "grok" | "openrouter"
+USE_MOCK_AI = False           # Set to True for testing without API keys
 
 # ─── Scraping API Keys ────────────────────────────────────────
 APOLLO_API_KEY   = os.getenv("APOLLO_API_KEY", "your_apollo_key_here")

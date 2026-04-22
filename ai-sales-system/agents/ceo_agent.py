@@ -19,30 +19,22 @@ import config
 
 import requests
 
+from agents.memory import memory
+
 CEO = "ceo"
 MAX_REVISIONS = 2
 
+from agents.ai_router import ai_call
+
 def _llm(prompt: str) -> str:
-    try:
-        print_step("ceo", "Thinking with OpenRouter AI")
-        headers = {
-            "Authorization": f"Bearer {config.OPENROUTER_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "meta-llama/llama-3.3-70b-instruct",
-            "messages": [{"role": "user", "content": prompt}]
-        }
-        r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-        return r.json()["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        print(f"   [LLM Error] {e}")
-        raise e
+    return ai_call(prompt)
 
 
 class CEOAgent:
     def __init__(self):
         self.decision_log = []
+        # Clear memory at start of new run
+        memory.clear()
 
     def _log(self, decision: str):
         self.decision_log.append(decision)
@@ -52,6 +44,9 @@ class CEOAgent:
         """LLM CALL #1: Decompose startup idea into agent tasks."""
         print_step(CEO, f"Decomposing startup idea: {startup_idea[:30]}...")
         self._log(f"Decomposing startup idea: '{startup_idea}'")
+
+        # Store the original idea in shared memory
+        memory.store("startup_idea", startup_idea, CEO)
 
         prompt = f"""You are the CEO of a startup. You received this idea:
 "{startup_idea}"
@@ -74,7 +69,10 @@ Return ONLY valid JSON, no explanation."""
                 "engineer_task": f"Build a stunning HTML landing page for: {startup_idea}.",
                 "marketing_task": f"Generate a tagline, cold email, and 3 social posts for: {startup_idea}."
             }
-        self._log(f"Tasks decomposed successfully: {list(tasks.keys())}")
+        
+        # Store tasks in memory for other agents to see
+        memory.store("agent_tasks", tasks, CEO)
+        self._log(f"Tasks decomposed and stored in Shared Memory.")
         return tasks
 
     def review_output(self, agent_name: str, output: dict, spec: dict = None) -> tuple[bool, str]:
@@ -128,6 +126,9 @@ Return ONLY valid JSON."""
             "focus": tasks["product_task"]
         })
 
+        # Store product spec in memory
+        memory.store("product_spec", product_spec, "product")
+
         # ── STEP 3: CEO Reviews Product Spec (Feedback Loop) ──
         passed, feedback = self.review_output("product", product_spec)
         if not passed:
@@ -139,6 +140,7 @@ Return ONLY valid JSON."""
             # Product agent revises
             product_spec = product_agent.revise(feedback)
             send_message("product", CEO, "result", {"revised": True, "spec": product_spec}, parent_message_id=rev_id)
+            memory.store("product_spec", product_spec, "product") # Update memory
             self._log("Product agent revised spec. Accepted on 2nd attempt.")
 
         # ── STEP 4: Send to Engineer & Marketing in parallel ──
@@ -154,13 +156,15 @@ Return ONLY valid JSON."""
         # Run Engineer Agent
         engineer_agent = GitHubEngineerAgent()
         engineer_result = engineer_agent.run(product_spec)
+        memory.store("engineer_output", {"pr_url": engineer_result.get("pr_url")}, "engineer")
 
         # Run Marketing Agent
         marketing_agent = SlackMarketingAgent()
         marketing_result = marketing_agent.run(product_spec, engineer_result.get("pr_url", ""))
+        memory.store("marketing_output", marketing_result, "marketing")
 
         # ── STEP 5: QA Agent reviews engineer & marketing output ──
-        print_step(CEO, "Handing off to QA for final review")
+        print_step(CEO, "Handing off to QA for final review and Ethics check")
         send_message(CEO, "qa", "task", {
             "html": engineer_result.get("html", ""),
             "pr_url": engineer_result.get("pr_url", ""),
@@ -189,6 +193,7 @@ Return ONLY valid JSON."""
             # Engineer revises
             engineer_result = engineer_agent.revise(product_spec, issues)
             send_message("engineer", CEO, "result", {"revised": True, "pr_url": engineer_result.get("pr_url")})
+            memory.store("engineer_output", {"pr_url": engineer_result.get("pr_url"), "revised": True}, "engineer")
             self._log("Engineer revised HTML after QA feedback. ✅")
         else:
             self._log("QA PASSED ✅ — All outputs accepted.")
@@ -199,7 +204,8 @@ Return ONLY valid JSON."""
             "pr_url": engineer_result.get("pr_url", "N/A"),
             "tagline": marketing_result.get("tagline", ""),
             "status": "Launch Complete ✅",
-            "qa_verdict": qa_result.get("verdict", "pass")
+            "qa_verdict": qa_result.get("verdict", "pass"),
+            "ethics_score": qa_result.get("ethics_score", "N/A")
         }
 
         send_message(CEO, "slack", "result", final_summary)
@@ -212,6 +218,10 @@ Return ONLY valid JSON."""
         print("🎯 CEO DECISION LOG:")
         for i, d in enumerate(self.decision_log, 1):
             print(f"  {i}. {d}")
+        
+        print("\n🧠 SHARED MEMORY SNAPSHOT:")
+        for k, v in memory.get_all().items():
+            print(f"  - {k}: {str(v)[:100]}...")
         print("="*60)
 
         return {

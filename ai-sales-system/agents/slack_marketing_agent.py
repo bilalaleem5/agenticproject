@@ -24,15 +24,10 @@ AGENT = "marketing"
 SLACK_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
 
 
+from agents.ai_router import ai_call
+
 def _llm(prompt: str) -> str:
-    print_step("marketing", "Drafting Campaigns (Llama 3)")
-    headers = {
-        "Authorization": f"Bearer {config.OPENROUTER_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {"model": "meta-llama/llama-3.3-70b-instruct", "messages": [{"role": "user", "content": prompt}]}
-    r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    return r.json()["choices"][0]["message"]["content"].strip()
+    return ai_call(prompt)
 
 
 class SlackMarketingAgent:

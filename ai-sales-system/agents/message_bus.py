@@ -39,7 +39,7 @@ def init_message_bus():
     """)
     conn.commit()
     conn.close()
-    print("[MessageBus] Initialized ✅")
+    print("[MessageBus] Initialized OK")
 
 
 def send_message(from_agent: str, to_agent: str, message_type: str,
