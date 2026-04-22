@@ -108,42 +108,16 @@ LaunchMind adopts a hierarchical MAS architecture as illustrated in Fig.~\ref{fi
 
 \begin{figure}[htbp]
 \centering
-% Architecture diagram described textually since TikZ is used
-\begin{tikzpicture}[
-  node distance=1.1cm and 1.6cm,
-  box/.style={draw, rounded corners, minimum width=2.0cm, minimum height=0.7cm,
-               font=\small, align=center, fill=teal!15},
-  ext/.style={draw, rounded corners, minimum width=2.0cm, minimum height=0.7cm,
-               font=\small, align=center, fill=blue!10},
-  arr/.style={->, thick}
-]
-  % Nodes
-  \node[box] (ceo)  {CEO Agent};
-  \node[box, above left=of ceo]  (product)  {Product\\Agent};
-  \node[ext, above right=of ceo] (engineer) {Engineer\\Agent\\(GitHub)};
-  \node[ext, below right=of ceo] (marketing){Marketing\\Agent\\(Slack)};
-  \node[box, below=1.4cm of ceo] (qa)       {QA Ethics\\Guardrail};
-  \node[box, above=1.4cm of ceo] (msgbus)   {Message Bus\\(SQLite)};
-  \node[box, left=1.6cm of qa]   (memory)   {Shared\\Memory};
-  \node[box, below=1.0cm of qa]  (launch)   {Launch\\Success};
-
-  % Arrows
-  \draw[arr] (ceo)    -- (msgbus);
-  \draw[arr] (msgbus) -- (ceo);
-  \draw[arr] (ceo)    -- (product);
-  \draw[arr] (product)-- (ceo);
-  \draw[arr] (ceo)    -- (engineer);
-  \draw[arr] (engineer)--(ceo);
-  \draw[arr] (ceo)    -- (marketing);
-  \draw[arr] (marketing)--(ceo);
-  \draw[arr] (ceo)    -- (qa);
-  \draw[arr] (qa)     -- (ceo);
-  \draw[arr] (qa)     -- (memory);
-  \draw[arr] (memory) -- (qa);
-  \draw[arr] (qa)     -- (launch);
-\end{tikzpicture}
-\caption{LaunchMind Multi-Agent System Architecture. The CEO Agent orchestrates all specialist agents via a persistent SQLite Message Bus. Shared Memory enables cross-agent context propagation. The QA Ethics Guardrail gates all outputs before final delivery.}
+\includegraphics[width=1.0\linewidth]{ss/Gemini_Generated_Image_eddt1eeddt1eeddt.png}
+\caption{LaunchMind Multi-Agent System Architecture showing the hierarchical orchestration and communication layers.}
 \label{fig:arch}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.0\linewidth]{ss/sequence_academic.png}
+\caption{Autonomous Coordination Sequence: This diagram illustrates the inter-agent dialogue and task-handover protocol mediated by the Message Bus.}
+\label{fig:sequence}
 \end{figure}
 
 \subsection{Agent Roles and Responsibilities}
@@ -297,34 +271,15 @@ The Full Agent Message Log (shown in the terminal output screenshot) reveals the
 
 This structured communication pattern ensures clear separation of concerns and provides a complete audit trail for compliance and debugging purposes.
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=1.0\linewidth]{ss/Screenshot 2026-04-22 235150.png}
-\caption{Full Agent Message Log from the terminal, showing the sequence of JSON-based task and result exchanges between agents via the SQLite Message Bus.}
-\label{fig:msglog}
-\end{figure}
-
-\subsection{GitHub Pull Request Evidence}
-
-Every successful run produced a verifiable GitHub pull request on the repository \texttt{bilalaleem5/launchmind-zetamize}. PR \#41 (\textit{"Automated PR: Initial Landing Page"}) was created by the \texttt{EngineerAgent} committer account with the commit message: \textit{"feat: Add initial landing page via autonomous Engineer Agent"}. The PR passed GitHub's conflict check (no merge conflicts with \texttt{main}) and received an automated QA review comment posted by the system. The QA comment reads: \textit{"QA Automated Review: Verdict: pass. Issues found: None. Excellent work."}
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=1.0\linewidth]{ss/Screenshot_22-4-2026_234857_github.com.jpeg}
-\caption{GitHub Pull Request interface showing the autonomous QA Review comment and the agent-generated PR description.}
-\label{fig:github}
-\end{figure}
-
 \subsection{Latency Breakdown}
 
 The 11--13 second end-to-end latency decomposes approximately as follows: LLM API calls account for the majority at approximately 7--9 seconds across all agents combined, GitHub API operations (branch creation, file commit, PR open) consume approximately 2--3 seconds, and Slack message posting adds less than 1 second. SQLite message bus writes are negligible ($<$50 ms total).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{ss/Screenshot_22-4-2026_235429_app.slack.com.jpeg}
-\includegraphics[width=0.9\linewidth]{ss/Screenshot 2026-04-22 235118.png}
-\caption{Top: Slack notification posted to the #launches channel. Bottom: Final Startup Launch Summary table generated in the terminal.}
-\label{fig:results}
+\includegraphics[width=1.0\linewidth]{ss/comparison_academic.png}
+\caption{Efficiency Analysis: A comparison between traditional manual startup launch workflows and the autonomous LaunchMind MAS execution time.}
+\label{fig:comparison}
 \end{figure}
 
 \subsection{Comparison with Baseline Approaches}
